@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - 3MF</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+			#info {
+				color: #fff;
+				position: absolute;
+				top: 10px;
+				width: 100%;
+				text-align: center;
+				z-index: 100;
+				display:block;
+			}
+			a { color: skyblue }
+			.button { background:#999; color:#eee; padding:0.2em 0.5em; cursor:pointer }
+			.highlight { background:orange; color:#fff; }
+			span {
+				display: inline-block;
+				width: 60px;
+				float: left;
+				text-align: center;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="info">
+			<div>loader test ||外部文件测试2.obj </div>
+			
+		</div>
+		
+		<? 
+		//OrbitControls.js控制物体轨迹移动
+		?>
+		<script src="js/three.js"></script>
+		<script src="js/OBJLoader.js"></script>
+		
+		<script src="js/Detector.js"></script>
+		<script src="js/OrbitControls.js"></script>	
+		<script src="js/jszip.min.js"></script>
+
+		<script>
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+			
+			var camera, scene, renderer;
+			init();
+			
+			function init() {
+				//创建场景
+				scene = new THREE.Scene();
+				//创建光效果：
+				scene.add( new THREE.AmbientLight( 0x999999 ) );
+				var pointLight = new THREE.PointLight( 0xffffff, 0.6 );
+				pointLight.position.set( 80, 90, 150 );
+				scene.add( pointLight );
+				//创建照相机：透视照相机，调节near：far比例可以产生视觉上的拉远
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+				// Z is up for objects intended to be 3D printed.
+				//坑爹的一句，带上就不能正常转了。。。。（doge
+				//camera.up.set( 0, 0, 1 );
+				//camera.position.set( -200, -230, 150 );
+				camera.position.set( 0, 0, 700 );
+				//x-，y-，都为0时也就不用变化了，就是看向（0,0,0）
+				//camera.lookAt(0,0,0);
+				camera.add( new THREE.PointLight( 0xffffff, 1 ) );
+				scene.add( camera );
+				//创建渲染器
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setClearColor( 0x000000 );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.body.appendChild( renderer.domElement );
+				
+				//加载器，先创建3个参数
+				var manager = new THREE.LoadingManager();
+				manager.onProgress = function ( item, loaded, total ) {
+
+					console.log( item, loaded, total );
+
+				};
+				
+				var texture=new THREE.Texture();
+				var onProgress = function ( xhr ) {
+					if ( xhr.lengthComputable ) {
+						var percentComplete = xhr.loaded / xhr.total * 100;
+						console.log( Math.round(percentComplete, 2) + '% downloaded' );
+					}
+				};
+				var onError = function ( xhr ) {
+				};
+				var loader = new THREE.ImageLoader( manager );
+				//加载纹理
+				loader.load( 'texture/2_0.jpg', function ( image ) {
+
+					texture.image = image;
+					texture.needsUpdate = true;
+
+				} );
+				
+				//加载外部文件
+				var loader = new THREE.OBJLoader( manager );
+				loader.load( 'obj/2.obj', function ( object ) {
+				object.traverse( function ( child ) {
+						if ( child instanceof THREE.Mesh ) {
+
+							child.material.map = texture;
+
+						}
+
+					} );
+
+					//置于原点就好了，不用改了。
+					//object.position.y = -20;
+					scene.add( object );
+					render();
+
+				}, onProgress, onError );
+				
+				/*原来的函数文件代码
+				var loader = new THREE.ThreeMFLoader();
+				loader.load( 'obj/cube_2.obj', function ( object ) {
+					scene.add( object );
+					render();
+				} );
+				*/
+				
+				
+				var controls = new THREE.OrbitControls( camera, renderer.domElement );
+				controls.addEventListener( 'change', render );
+				//controls.target.set( 80, 65, 35 );
+				controls.target.set( 0, 1, 0 );
+				//controls.target.set( 16, 13, 7 );
+				controls.update();
+				window.addEventListener( 'resize', onWindowResize, false );
+			}
+			//窗口恢复
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				render();
+			}
+			//执行渲染
+			function render() {
+				renderer.render( scene, camera );
+			}
+		</script>
+	</body>
+</html>
